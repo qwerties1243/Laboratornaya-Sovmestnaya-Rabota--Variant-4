@@ -33,7 +33,23 @@ public final class HtmlQuizGenerator {
             return name().toLowerCase(java.util.Locale.ROOT);
         }
     }
-	
+	public String generate(QuizSpec spec) {
+        String json = GSON.toJson(new JsonQuiz(spec));
+        String styleClass = Style.fromName(spec.getStyle()).cssClass();
+        return TEMPLATE
+                .replace("{{TITLE}}", escapeHtml(spec.getTitle()))
+                .replace("{{H1}}", escapeHtml(spec.getH1()))
+                .replace("{{STYLE_CLASS}}", styleClass)
+                .replace("{{QUIZ_JSON}}", json.replace("</", "<\\/"));
+    }
+
+    public void generateToFile(QuizSpec spec, Path output) throws IOException {
+        Path parent = output.toAbsolutePath().getParent();
+        if (parent != null) {
+            Files.createDirectories(parent);
+        }
+        Files.writeString(output, generate(spec), StandardCharsets.UTF_8);
+    }
     private static String escapeHtml(String value) {
         return value.replace("&", "&amp;")
                 .replace("<", "&lt;")
@@ -41,7 +57,30 @@ public final class HtmlQuizGenerator {
                 .replace("\"", "&quot;")
                 .replace("'", "&#39;");
     }
+private record JsonQuiz(String title, String h1, String style,
+                            java.util.List<JsonQuestion> questions) {
+        JsonQuiz(QuizSpec spec) {
+            this(spec.getTitle(), spec.getH1(), spec.getStyle(),
+                    spec.getQuestions().stream().map(JsonQuestion::new).toList());
+        }
+    }
 
+    private record JsonQuestion(String text, String answerType, int correctCount,
+                                java.util.List<JsonOption> options, String expectedText) {
+        JsonQuestion(QuizSpec.Question question) {
+            this(question.getText(),
+                    question.getAnswerType().getCode(),
+                    question.correctCount(),
+                    question.getOptions().stream().map(JsonOption::new).toList(),
+                    question.getExpectedText());
+        }
+    }
+
+    private record JsonOption(String text, boolean correct) {
+        JsonOption(QuizSpec.Option option) {
+            this(option.getText(), option.isCorrect());
+        }
+    }
     private static final String TEMPLATE = """
 <!DOCTYPE html>
 <html lang="ru">
