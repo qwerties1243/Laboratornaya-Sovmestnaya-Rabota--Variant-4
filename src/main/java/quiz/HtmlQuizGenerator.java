@@ -9,7 +9,31 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 public final class HtmlQuizGenerator {
-  
+    private static final Gson GSON = new GsonBuilder()
+            .disableHtmlEscaping()
+            .setPrettyPrinting()
+            .create();
+
+    public enum Style {
+        DEFAULT, DARK, COMPACT;
+
+        public static Style fromName(String name) {
+            if (name == null || name.isBlank()) {
+                return DEFAULT;
+            }
+            for (Style style : values()) {
+                if (style.name().equalsIgnoreCase(name.strip())) {
+                    return style;
+                }
+            }
+            return DEFAULT;
+        }
+
+        public String cssClass() {
+            return name().toLowerCase(java.util.Locale.ROOT);
+        }
+    }
+	
     private static String escapeHtml(String value) {
         return value.replace("&", "&amp;")
                 .replace("<", "&lt;")
