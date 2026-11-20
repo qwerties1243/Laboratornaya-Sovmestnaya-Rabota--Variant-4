@@ -107,5 +107,56 @@ public final class QuizDslParser {
         }
         return new QuizSpec(title, h1, style.strip(), questions, source);
     }
-	
+	private static boolean startsWithDirective(String line, String name) {
+        if (line.length() <= name.length()) {
+            return false;
+        }
+        return line.substring(0, name.length()).equalsIgnoreCase(name)
+                && Character.isWhitespace(line.charAt(name.length()));
+    }
+
+    private static String requireValue(String line, String directive, int lineNumber) {
+        String value = line.substring(directive.length()).strip();
+        if (value.isEmpty()) {
+            throw error(lineNumber, "Директива " + directive + " требует значения");
+        }
+        return value;
+    }
+
+    private static QuizSpec.AnswerType extractType(String questionHeader, int lineNumber) {
+        int lastSpace = questionHeader.lastIndexOf(' ');
+        if (lastSpace < 0 || lastSpace == questionHeader.length() - 1) {
+            throw error(lineNumber, "После текста вопроса должен быть указан тип ответа: r, c или t");
+        }
+        String code = questionHeader.substring(lastSpace + 1).strip();
+        try {
+            return QuizSpec.AnswerType.fromCode(code);
+        } catch (IllegalArgumentException e) {
+            throw error(lineNumber, "Некорректный тип ответа '" + code + "'. Допустимо: r, c, t");
+        }
+    }
+
+    private static String stripType(String questionHeader, int lineNumber) {
+        int lastSpace = questionHeader.lastIndexOf(' ');
+        if (lastSpace < 0) {
+            throw error(lineNumber, "Неверный формат строки вопроса");
+        }
+        return questionHeader.substring(0, lastSpace).stripTrailing();
+    }
+
+    private record Line(String text, int number, int nextIndex) { }
+
+    private static Line nextNonBlank(String[] lines, int from, int fallbackLineNumber) {
+        for (int j = from; j < lines.length; j++) {
+            String candidate = lines[j].strip();
+            if (!candidate.isEmpty() && !candidate.startsWith("#")) {
+                return new Line(candidate, j + 1, j + 1);
+            }
+        }
+        return new Line("", fallbackLineNumber, lines.length);
+    }
+
+    private static IllegalArgumentException error(int lineNumber, String message) {
+        return new IllegalArgumentException("Строка " + lineNumber + ": " + message);
+    }
 }
