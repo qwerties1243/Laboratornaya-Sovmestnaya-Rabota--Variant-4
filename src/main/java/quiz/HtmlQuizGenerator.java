@@ -33,6 +33,7 @@ public final class HtmlQuizGenerator {
             return name().toLowerCase(java.util.Locale.ROOT);
         }
     }
+	
 	public String generate(QuizSpec spec) {
         String json = GSON.toJson(new JsonQuiz(spec));
         String styleClass = Style.fromName(spec.getStyle()).cssClass();
@@ -57,7 +58,8 @@ public final class HtmlQuizGenerator {
                 .replace("\"", "&quot;")
                 .replace("'", "&#39;");
     }
-private record JsonQuiz(String title, String h1, String style,
+
+	private record JsonQuiz(String title, String h1, String style,
                             java.util.List<JsonQuestion> questions) {
         JsonQuiz(QuizSpec spec) {
             this(spec.getTitle(), spec.getH1(), spec.getStyle(),
