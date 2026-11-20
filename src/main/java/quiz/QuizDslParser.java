@@ -16,7 +16,7 @@ public final class QuizDslParser {
     }
 
     public QuizSpec parse(String source) {
-		if (!source.isEmpty() && source.charAt(0) == '﻿') {
+        if (!source.isEmpty() && source.charAt(0) == '﻿') {
             source = source.substring(1);
         }
         String[] lines = source.split("\\R", -1);
@@ -30,7 +30,7 @@ public final class QuizDslParser {
             int lineNumber = i + 1;
             String raw = lines[i].strip();
             i++;
-            if (raw.isEmpty()  raw.startsWith("#")) {
+            if (raw.isEmpty() || raw.startsWith("#")) {
                 continue;
             }
 
@@ -47,13 +47,29 @@ public final class QuizDslParser {
                 continue;
             }
 
+            if (raw.charAt(0) != '?') {
+                throw error(lineNumber, "Ожидалась директива Title/H1/Style или начало вопроса '?'");
+            }
 
             String questionHeader = raw.substring(1).strip();
+            if (questionHeader.isEmpty()) {
+                throw error(lineNumber, "Пустой вопрос");
+            }
             QuizSpec.AnswerType type = extractType(questionHeader, lineNumber);
             String questionText = stripType(questionHeader, lineNumber).strip();
+            if (questionText.isEmpty()) {
+                throw error(lineNumber, "Отсутствует текст вопроса");
+            }
+
             if (type == QuizSpec.AnswerType.TEXT) {
                 Line answerLine = nextNonBlank(lines, i, lineNumber);
+                if (answerLine.text.isEmpty() || answerLine.text.charAt(0) != '_') {
+                    throw error(answerLine.number, "Для текстового вопроса ожидается строка '_ Правильный ответ'");
+                }
                 String answer = answerLine.text.substring(1).strip();
+                if (answer.isEmpty()) {
+                    throw error(answerLine.number, "Пустой текстовый ответ");
+                }
                 i = answerLine.nextIndex;
                 questions.add(new QuizSpec.Question(
                         questionText, type, List.of(), answer));
@@ -66,10 +82,10 @@ public final class QuizDslParser {
                 int optionLineNumber = i + 1;
                 String optionRaw = lines[i].strip();
                 i++;
-                if (optionRaw.isEmpty()  optionRaw.startsWith("#")) {
+                if (optionRaw.isEmpty() || optionRaw.startsWith("#")) {
                     continue;
                 }
-                if (optionRaw.equals("e")  optionRaw.startsWith("e ")) {
+                if (optionRaw.equals("e") || optionRaw.startsWith("e ")) {
                     String tail = optionRaw.substring(1).strip();
                     if (!tail.isEmpty()) {
                         throw error(optionLineNumber, "Лишние символы после 'e'");
@@ -84,7 +100,7 @@ public final class QuizDslParser {
 
                 boolean endsBlock = false;
                 if (body.endsWith("e") && (body.length() == 1
-                         Character.isWhitespace(body.charAt(body.length() - 2))
+                        || Character.isWhitespace(body.charAt(body.length() - 2))
                         || body.charAt(body.length() - 2) == '+')) {
                     body = body.substring(0, body.length() - 1).stripTrailing();
                     endsBlock = true;
@@ -103,11 +119,35 @@ public final class QuizDslParser {
                     break;
                 }
             }
+            if (!closed) {
+                throw error(lines.length, "Блок вариантов вопроса '" + questionText + "' не закрыт директивой 'e'");
+            }
+            if (options.size() < 2) {
+                throw error(lineNumber, "Вопрос '" + questionText + "' содержит менее двух вариантов");
+            }
+            if (options.stream().noneMatch(QuizSpec.Option::isCorrect)) {
+                throw error(lineNumber, "У вопроса '" + questionText + "' нет правильного варианта");
+            }
+            if (type == QuizSpec.AnswerType.RADIO
+                    && options.stream().filter(QuizSpec.Option::isCorrect).count() > 1) {
+                throw error(lineNumber, "В вопросе с одиночным выбором несколько правильных вариантов");
+            }
             questions.add(new QuizSpec.Question(questionText, type, options, null));
+        }
+
+        if (title == null || title.isBlank()) {
+            throw error(1, "Не задана директива Title");
+        }
+        if (h1 == null || h1.isBlank()) {
+            throw error(1, "Не задана директива H1");
+        }
+        if (questions.isEmpty()) {
+            throw error(1, "В тесте нет вопросов");
         }
         return new QuizSpec(title, h1, style.strip(), questions, source);
     }
-	private static boolean startsWithDirective(String line, String name) {
+
+    private static boolean startsWithDirective(String line, String name) {
         if (line.length() <= name.length()) {
             return false;
         }
