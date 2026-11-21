@@ -1,38 +1,38 @@
-# Лабораторная работа: генератор тестов
+# Lab Work: Quiz Form Generator
 
-Простой проект на Java. Программа читает описание теста на небольшом языке DSL и создаёт HTML-файл с формой. Страница находится в одном файле: JavaScript берёт вопросы из JSON, который встроен прямо в HTML.
+A simple Java project. The program reads a quiz description written in a small DSL and creates an HTML file with a form. The page is stored in one file: JavaScript reads the questions from JSON that is embedded directly into the HTML.
 
-## Что используется
+## Technologies
 
 - Java 21
-- Gson 2.11.0 (лежит в папке lib)
+- Gson 2.11.0 (stored in the `lib` folder)
 - Java Collections Framework
 - Stream API
 
-## Как устроено
+## Project Structure
 
-- QuizSpec.java - модель теста: вопросы, варианты, тип ответа.
-- QuizDslParser.java - разбирает текст DSL в модель и проверяет ошибки.
-- HtmlQuizGenerator.java - превращает модель в HTML. Сначала Gson делает JSON, потом он вставляется в страницу.
-- Main.java - точка входа, принимает два файла: входной и выходной.
+- `QuizSpec.java` - quiz model: questions, options, answer type.
+- `QuizDslParser.java` - parses the DSL text into the model and checks for errors.
+- `HtmlQuizGenerator.java` - turns the model into HTML. First Gson creates JSON, then it is inserted into the page.
+- `Main.java` - entry point, takes two files: input and output.
 
-## Синтаксис DSL
+## DSL Syntax
 
-Директивы:
+Directives:
 
-- Title - заголовок вкладки
-- H1 - заголовок на странице
-- Style - стиль, по умолчанию default
+- `Title` - browser tab title
+- `H1` - page heading
+- `Style` - style, `default` by default
 
-Вопрос начинается с ?, в конце указывается тип ответа:
+A question starts with `?` and ends with the answer type:
 
-- r - один правильный вариант
-- c - несколько вариантов
-- t - текстовый ответ
+- `r` - one correct option
+- `c` - multiple correct options
+- `t` - text answer
 
-Варианты пишутся через -, правильный помечается плюсом. Конец блока - буква e. Для текстового вопроса ответ задаётся строкой _.
+Options are written with `-`, the correct one is marked with `+`. The end of the block is `e`. For a text question the answer is written with `_`.
 
-Пример:
+Example:
 
 ```
 Title My title
@@ -49,41 +49,45 @@ H1 Super Test
 _ My answer
 ```
 
-## Как запустить
+## How to Run
 
-Нужно открыть командную строку в папке проекта.
+Open a command prompt in the project folder.
 
-Сборка:
+Build:
 
 ```
 build.bat
 ```
 
-Запуск с файлом по умолчанию:
+Run with the default file:
 
 ```
 run.bat
 ```
 
-В этом случае читается examples/quiz.txt, а результат пишется в quiz.html.
+In this case `examples/quiz.txt` is read and the result is written to `quiz.html`.
 
-Запуск со своими файлами:
+Run with your own files:
 
 ```
 run.bat my.quiz result.html
 ```
 
-Можно и без батников (в PowerShell нужно кавычки вокруг параметра -Dfile.encoding):
+You can also run it without the batch files (in PowerShell, quotes are needed around the `-Dfile.encoding` parameter):
 
 ```
 javac -encoding UTF-8 -cp lib/gson-2.11.0.jar -d out src/main/java/quiz/*.java
 java '-Dfile.encoding=UTF-8' -cp out;lib/gson-2.11.0.jar quiz.Main examples/quiz.txt quiz.html
 ```
 
-## Как проверить
+## How to Check
 
-После запуска открываем вручную файл quiz.html в браузере. Нужно ответить на вопросы и нажать кнопку "Проверить ответы". Внизу появится результат вида "Результат: 3 из 3". Текстовый ответ можно писать в любом регистре - программа это учитывает.
+After running, open `quiz.html` in a browser. Answer the questions and click the "Проверить ответы" button. Each question is marked with "Верно" or "Неверно. Правильный ответ: ...". The result like "Результат: 3 из 3" appears at the bottom. A text answer can be written in any case - the program takes this into account.
 
-## Возможные ошибки
+## Possible Errors
 
-Парсер сообщает номер строки и причину. Например, если не закрыт блок вариантов, нет правильного ответа или в вопросе с одним выбором отмечено несколько вариантов.
+The parser reports the line number and the reason. For example, if a block of options is not closed, there is no correct answer, or several options are marked in a question with one choice.
+
+## Screenshot
+
+![Quiz form example](screenshots/quiz-form.png)
